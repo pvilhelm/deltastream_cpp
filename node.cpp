@@ -1,103 +1,143 @@
 #include "node.h"
 
-dstream::node::node(uint32_t ip, uint16_t port) 
-{
-    this->address = dstream::address(ip, port);
+dstream::Node::Node() 
+{ 
 }
 
 
-dstream::node::~node() 
+dstream::Node::~Node() 
 {
 }
 
-dstream::address dstream::node::setAddress(uint32_t ip, uint16_t port)
+dstream::Address dstream::Node::setAddress(IP ip, uint16_t port)
 {
-    this->address = dstream::address(ip,port);
+    this->address = dstream::Address(ip,port);
     return this->address;
 }
 
-dstream::address dstream::node::getAddress()
+dstream::Address dstream::Node::getAddress()
 {
     return this->address;
 }
 
-dstream::address::address()
+dstream::Address::Address()
 {}
 
-dstream::address::address(uint32_t ip, uint16_t port) 
+dstream::Address::Address(uint32_t ip, uint16_t port) 
 {
     this->port = port;
-    this->ip_v = IP4;
-    this->ip.ip4 = ip;
+    this->ip.ip_v = IP4;
+    this->ip.u_ip.ip4 = ip;
 }
 
-dstream::address::address(ip6 ip, uint16_t port) 
+dstream::Address::Address(uint64_t *ip, uint16_t port)
+{
+    this->port = port;
+    this->ip.ip_v = IP6;
+    this->ip.u_ip.ip6[0] = ip[0];
+    this->ip.u_ip.ip6[1] = ip[1];
+}
+
+dstream::Address::Address(IP ip, uint16_t port)
 {
     this->port = port; 
-    this->ip_v = IP6;
-    this->ip.ip6[0] = ip.arr[0];
-    this->ip.ip6[1] = ip.arr[1];
+    this->ip = ip;
 }
 
-dstream::address::~address()
+dstream::Address::~Address()
 {}
 
 
-bool dstream::address::operator<(const address & rh) 
+bool dstream::operator<(const Address& lh, const Address& rh)
 {
-    if (this->ip_v == IP4) {
-        if (rh.ip_v == IP4) {
-            if (this->ip.ip4 < rh.ip.ip4) {
+    if(lh.ip.ip_v == IP4) {
+        if(rh.ip.ip_v == IP4) {
+            if(lh.ip.u_ip.ip4 < rh.ip.u_ip.ip4) {
                 return true;
-            } else if (this->ip.ip4 > rh.ip.ip4) {
+            } else if (lh.ip.u_ip.ip4 > rh.ip.u_ip.ip4) {
                 return false;
             } else {
-                return this->port < rh.port;
+                return lh.port < rh.port;
             }
         } else { /* rh is ip6*/
-            if (rh.ip.ip6[2])
+            if(rh.ip.u_ip.ip6[2])
+                return true;
+            else if(lh.ip.u_ip.ip4 < rh.ip.u_ip.ip6[1])
                 return true;
             else
-                return this->ip.ip4 < rh.ip.ip6[1];
+                return lh.port < rh.port;
         }
     } else {
-        if (rh.ip_v == IP6)
-            if (this->ip.ip6[1] < rh.ip.ip6[1])
-                return false;
-            else
-                return this->ip.ip6[0] < rh.ip.ip6[0];
-        else
-            if (this->ip.ip6[1])
+        if(rh.ip.ip_v == IP6)
+            if(lh.ip.u_ip.ip6[1] < rh.ip.u_ip.ip6[1])
                 return true;
             else
-                return this->ip.ip6[0] < rh.ip.ip4;
+                if(lh.ip.u_ip.ip6[0] < rh.ip.u_ip.ip6[0])
+                    return true;
+                else if(lh.ip.u_ip.ip6[0] > rh.ip.u_ip.ip6[0])
+                    return false; 
+                else
+                    return lh.port < rh.port;
+        else
+            if(lh.ip.u_ip.ip6[1])
+                return false;
+            else
+                if(lh.ip.u_ip.ip6[0] < rh.ip.u_ip.ip4)
+                    return true;
+                else if((lh.ip.u_ip.ip6[0] > rh.ip.u_ip.ip4))
+                    return false;
+                else
+                    return lh.port < rh.port;
     }
 }
 
-uint16_t dstream::address::getPort()
+bool dstream::operator==(const Address& lh, const Address& rh)
+{
+
+    if(lh.ip.ip_v != rh.ip.ip_v)
+        return false; 
+    else if(lh.ip.ip_v == IP4) {
+        if(lh.ip.u_ip.ip4 != rh.ip.u_ip.ip4)
+           return false;
+        else if(lh.port != rh.port)
+           return false;
+        return true;
+    } else {
+        if(lh.ip.u_ip.ip6[0] != rh.ip.u_ip.ip6[0])
+            return false;
+        else if(lh.ip.u_ip.ip6[1] != rh.ip.u_ip.ip6[1])
+            return false;
+        else if(lh.port != rh.port)
+            return false;
+        else
+            return true;
+    }
+}
+
+uint16_t dstream::Address::getPort()
 {
     return this->port;
 }
 
-dstream::ip6 dstream::address::getIP6()
+dstream::IP dstream::Address::getIP()
 {
-    if (this->ip_v == IP6)
-        return dstream::ip6(this->ip.ip6);
+    return this->ip;
+}
+
+uint32_t dstream::Address::getIPv4()
+{
+    if(this->ip.ip_v == IP4)
+        return this->ip.u_ip.ip4;
     else
-        return dstream::ip6();
+        return 0; 
 }
 
-uint32_t dstream::address::getIP4()
+bool dstream::Address::isIPv4()
 {
-    if (this->ip_v == IP4)
-        return this->ip.ip4;
-    else
-        return 0;
+    return this->ip.ip_v == IP4;
 }
 
-bool dstream::address::isIP4()
-{
-    return this->ip_v == IP4;
-}
-
-
+bool dstream::operator>(const Address& lh, const Address& rh) { return rh < lh; }
+bool dstream::operator!=(const Address& lh, const Address& rh) { return !(lh == rh); }
+bool dstream::operator<=(const Address& lh, const Address& rh) { return !(lh > rh); }
+bool dstream::operator>=(const Address& lh, const Address& rh) { return !(lh < rh); }

@@ -3,68 +3,134 @@
 #include <cinttypes>
 
 namespace dstream{
-    struct ip6
+    enum ip_v_E
     {
-        uint64_t arr[2];
-        ip6(uint64_t arr_ip[2])
+        IP4,
+        IP6
+    };
+
+    union ip_U
+    {
+        uint64_t ip6[2]; /* LE */
+        uint32_t ip4; /* LE */
+    };
+
+    struct IP
+    {
+        ip_v_E ip_v; /* Ip version */
+        ip_U u_ip;
+         
+        IP()
         {
-            this->arr[0] = arr_ip[0];
-            this->arr[1] = arr_ip[1];
+            this->ip_v = IP4;
         }
-        ip6()
+        explicit IP(uint32_t ip)
         {
-            this->arr[0] = 0;
-            this->arr[1] = 0;
+            this->ip_v = IP4;
+            this->u_ip.ip4 = ip;
+        }
+        IP(uint64_t const * const ip)
+        {
+            this->ip_v = IP6;
+            this->u_ip.ip6[0] = ip[0];
+            this->u_ip.ip6[1] = ip[1];
         }
 
-        bool operator==(const ip6& src)
+        bool operator==(const IP& src)
         {
-            return src.arr[0] == this->arr[0] && src.arr[1] == this->arr[1];
+            if(this->ip_v == IP4) {
+                if(src.ip_v == IP6)
+                    return false;
+                else
+                    return src.u_ip.ip4 == this->u_ip.ip4;
+            } else {
+                if(src.ip_v == IP4)
+                    return false; 
+                else      
+                    return src.u_ip.ip6[0] == this->u_ip.ip6[0] &&
+                        src.u_ip.ip6[1] == this->u_ip.ip6[1];
+            }
         }
     };
 
-    class address
+
+
+    /// Ip and port class.
+    /**
+     * An address represents ip and port and hold information of 
+     * ip protocol version.
+     */
+    class Address
     {
     public:
-        address();
-        address(uint32_t ip, uint16_t port);
-        address(ip6 ip, uint16_t port);
-        ~address();
-        bool operator<(const address &rh);
+        ///Creates an empty andress.
+        Address(); 
+        ///Creates an ipv4 address.
+        /**
+         * \param ip Little endian ipv4.
+         * \param port Remote port.
+         */
+        Address(uint32_t ip, uint16_t port);
 
-        uint16_t getPort();
-        ip6 getIP6();
-        uint32_t getIP4();
-        bool isIP4();
+        ///Creates an ipv6 address.
+        /**
+         * \param ip Little endian IPv6 uint64 array.
+         * \param port remote port.
+         */
+        Address(uint64_t *ip, uint16_t port);
+        ///Creates an ipv6 or ipv4 address.
+        /**
+         * \param ip IP object.
+         * \param port Remote port. 
+         */
+        Address(IP ip, uint16_t port);
+        ~Address();
+        ///Compare addresses.
+        /**
+         * On ties the port number decides which address is lesser.
+         */
+        
 
-    private:
-        enum ip_v_E
-        {
-            IP4,
-            IP6
-        } ip_v; /* Ip version */
-        union u_ip
-        {
-            uint64_t ip6[2]; /* LE */
-            uint32_t ip4; /* LE */
-        } ip;
+        uint16_t getPort(); ///Gets the remote port.
+        ///Gets ip.
+        IP getIP(); 
+        //Gets ip as IPv4.
+        /** If the object is not IPv4 the functions returns 0. */
+        uint32_t getIPv4();
+        bool isIPv4();///True if the address is IPv4.
+
+    //private:
+        IP ip;
         uint16_t port; /* Port if relevant */
     };
+    ///Overriden mostly for std::map usage.
+    bool operator<(const Address& lh, const Address& rh);
+    bool operator==(const Address& lh, const Address& rh);
+    bool operator>(const Address& lh, const Address& rh);
+    bool operator!=(const Address& lh, const Address& rh);
+    bool operator<=(const Address& lh, const Address& rh);
+    bool operator>=(const Address& lh, const Address& rh);
 
-
-    /** \brief A node in the broadcast.
-     *
+    /// A node in the broadcast.
+    /**
      *  A node represents a participant in the broadcast. 
      *
      */
-    class node {
+    class Node {
     public:
-        node(uint32_t ip, uint16_t port);
-        ~node();
-        address setAddress(uint32_t ip, uint16_t port);
-        address getAddress();
+        /// Creates a empty node.
+        Node();
+        ~Node();
+        /// Sets the IP and port of the node.
+        /** 
+         * \param ip The IP of the node. 
+         * \param port Remote port. 
+         */
+        Address setAddress(IP ip, uint16_t port);
+        /// Gets the ip and port of the node.
+        Address getAddress();
     private:
-        address address;
+        Address address;
 
     };
 }
