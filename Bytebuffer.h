@@ -21,15 +21,51 @@ namespace dstream {
         LE
     };
 
+    class ByteBufferIterator
+    {
+    public:
+        // Iterator traits, previously from std::iterator.
+        using value_type = uint8_t;
+        using difference_type = std::ptrdiff_t;
+        using pointer = uint8_t*;
+        using reference = uint8_t&;
+        using iterator_category = std::bidirectional_iterator_tag;
 
-    ///Bytebuffer for convinient network packet parsing.
-    /** The buffer defaults to big-endian mode where it inputs/outputs data with it's endianness
+        // Default constructible.
+        ByteBufferIterator() = default;
+        explicit ByteBufferIterator(uint8_t *ptr);
+
+        // Dereferencable.
+        reference operator*() const;
+
+        // Pre- and post-incrementable.
+        ByteBufferIterator& operator++();
+        ByteBufferIterator operator++(int);
+
+        // Pre- and post-decrementable.
+        ByteBufferIterator& operator--();
+        ByteBufferIterator operator--(int);
+
+        // Equality / inequality.
+        bool operator==(const ByteBufferIterator& rhs);
+        bool operator!=(const ByteBufferIterator& rhs);
+    private:
+        uint8_t *ptr;
+
+
+    };
+
+
+    ///Bytebuffer for convenient network packet parsing.
+    /** The buffer defaults to big-endian mode where it inputs/outputs data with it's endianess
      * changed. In little-endian mode the buffer inputs/outputs the data unaltered. 
+     *
+     * The buffer tracks the "position", i.e. offset in memory on the buffer's backing array, on which work is done. 
      *
      * An "element" is a type of varying size. "End" is the position after the last byte, of an element or
      * the backing buffer array.
      *
-     * "Insert" inserts an element before the buffer position and after the preceeding position and then 
+     * "Insert" inserts an element before the buffer position and after the preceding position and then 
      * moves the position forward to
      * the end of the element. I.e. the element get jammed in between other elements (or start/end w/e). 
      *
@@ -41,6 +77,8 @@ namespace dstream {
     class Bytebuffer
     {
     public:
+
+        using iterator = ByteBufferIterator;
     
         Bytebuffer();
         Bytebuffer(std::shared_ptr<std::vector<uint8_t>> v_data);
@@ -61,39 +99,39 @@ namespace dstream {
          * \returns Position after rewind. 
          */
         size_t rewind(size_t n);
-        ///Get uint8_t and andvance buffer position.
+        ///Get uint8_t and advance buffer position.
         /** \throws runtime_error Throws if the read would go beyond the data. */
         uint8_t get_uint8();
-        ///Get uint16_t and andvance buffer position.
+        ///Get uint16_t and advance buffer position.
         /** \throws runtime_error Throws if the read would go beyond the data. */
         uint16_t get_uint16();
-        ///Get uint32_t and andvance buffer position.
+        ///Get uint32_t and advance buffer position.
         /** \throws runtime_error Throws if the read would go beyond the data. */
         uint32_t get_uint32();
-        ///Get uint64_t and andvance buffer position.
+        ///Get uint64_t and advance buffer position.
         /** \throws runtime_error Throws if the read would go beyond the data. */
         uint64_t get_uint64();
-        ///Get int8_t and andvance buffer position.
+        ///Get int8_t and advance buffer position.
         /** \throws runtime_error Throws if the read would go beyond the data. */
         int8_t get_int8();
-        ///Get int16_t and andvance buffer position.
+        ///Get int16_t and advance buffer position.
         /** \throws runtime_error Throws if the read would go beyond the data. */
         int16_t get_int16();
-        ///Get int32_t and andvance buffer position.
+        ///Get int32_t and advance buffer position.
         /** \throws runtime_error Throws if the read would go beyond the data. */
         int32_t get_int32();
-        ///Get int64_t and andvance buffer position.
+        ///Get int64_t and advance buffer position.
         /** \throws runtime_error Throws if the read would go beyond the data. */
         int64_t get_int64();
-        ///Get float (single) and andvance buffer position.
+        ///Get float (single) and advance buffer position.
         /** \throws runtime_error Throws if the read would go beyond the data. */
         float get_float();
-        ///Get double and andvance buffer position.
+        ///Get double and advance buffer position.
         /** \throws runtime_error Throws if the read would go beyond the data. */
         double get_double();
 
         ///Get bytes as a vector.
-        /** \param n Bytes to get 
+        /** \param n Amount of bytes to get 
          *  \throws runtime_error Throws if the read would go beyond the data.
          */
         std::vector<uint8_t> get_bytes(size_t n);
@@ -106,7 +144,7 @@ namespace dstream {
          */
         size_t getPos(){return pos;}
         ///Set the buffer position.
-        /** \param n The position zero indexed from start.
+        /** \param n The target position, zero indexed from start.
          * \throws runtime_error Throws if the new position go beyond the end. 
          * \return The new position.
          */
@@ -178,7 +216,7 @@ namespace dstream {
 
          ///Get buffer byte by index.
          /** This function doesn't check the parameter and doesn't affect the position. 
-          * Accessing elements beyond the last couses undefined behaviour. 
+          * Accessing elements beyond the last causes undefined behavior. 
           * \param i Index to get.
           * \return Reference to the byte.
           */
@@ -188,11 +226,25 @@ namespace dstream {
          }
 
          ///Retrieves the backing data by moving and invalidates it.
-         /** Adding or retrieving data from the buffer after a move couses
-          * undefined behaviour. */
+         /** Adding or retrieving data from the buffer after a move causes
+          * undefined behavior. */
          std::vector<uint8_t> move_data(){ return std::move(*v_data); }
          ///Retrieves the backing data by copying it. 
          std::vector<uint8_t> copy_data(){ return *v_data; }
+
+
+         /// Get bidirectional iterator to end.
+         /** Mainly to allow for for range iterations. */
+         iterator end()
+         {
+             return ByteBufferIterator(1 + &(*v_data)[v_data->size()-1]);
+         }
+         /// Get bidirectional iterator to beginning. 
+         /** Mainly to allow for for range iterations. */
+         iterator begin()
+         {
+             return ByteBufferIterator(&(*v_data)[0]);
+         }
 
     private:
 

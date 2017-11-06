@@ -167,5 +167,24 @@ TEST_CASE("bytebyffer")
 
         REQUIRE(b[0] == 0x11u);
         REQUIRE(b[3] == 0x33u);
+
+        auto it = b.begin(); 
+        REQUIRE(*it++ == 0x11U);
+        REQUIRE(*it++ == 0x22U);
+        b.rewind();
+
+        // Check that for range works properly 
+        for(auto it2 : b){
+            REQUIRE(b.get_uint8() == it2);
+        }
+        // Zero all elements
+        for(auto& it2 : b) {
+            it2 = 0;
+        }
+        b.rewind();
+        for(auto it2 : b) {
+            REQUIRE(it2 == 0);
+        }
+
     }
 }

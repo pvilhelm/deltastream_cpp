@@ -421,3 +421,50 @@ void dstream::Bytebuffer::put_bytes(std::vector<uint8_t> v)
     pos = v_data->size();
     insert_bytes(v);
 }
+
+dstream::ByteBufferIterator::ByteBufferIterator(uint8_t *ptr)
+{
+    this->ptr = ptr;
+}
+
+dstream::ByteBufferIterator::reference dstream::ByteBufferIterator::operator*() const
+{
+    return *ptr;
+}
+
+
+dstream::ByteBufferIterator &dstream::ByteBufferIterator::operator++()
+{
+    ++ptr;
+    return *this;
+}
+
+dstream::ByteBufferIterator dstream::ByteBufferIterator::operator++(int)
+{
+    auto tmp = *this;
+    ++ptr;
+    return tmp;
+}
+
+dstream::ByteBufferIterator & dstream::ByteBufferIterator::operator--()
+{
+    return --ptr, *this;
+}
+
+dstream::ByteBufferIterator dstream::ByteBufferIterator::operator--(int)
+{
+    auto tmp = *this; 
+    --ptr;
+    return *this;
+}
+
+bool dstream::ByteBufferIterator::operator==(const ByteBufferIterator & rhs)
+{
+    return this->ptr == rhs.ptr;
+}
+
+bool dstream::ByteBufferIterator::operator!=(const ByteBufferIterator & rhs)
+{
+    return !(*this == rhs);
+}
+
